@@ -1,4 +1,4 @@
-from n_and_c_game_dependents import START_Q, ALLOWED_ACTIONS, get_reward, PureState
+from n_and_c_game_dependents import START_Q, get_allowed_actions, get_reward, PureState
 from n_and_c_settings import learning_params
 
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ class Strategy:
         self.last_action = None
         self.last_data = None
 
-    def respond(self, game_data):
+    def respond(self, game_data, learning, explain=False):
         pure_state = PureState.build_from_data(game_data)
         # make this try-except!
         if pure_state in list(self.states.keys()):
@@ -32,21 +32,22 @@ class Strategy:
             state = State(pure_state)
             self.states[pure_state] = state
 
-        if learning_params.learning and learning_params.predictive and self.last_state is not None:
+        if learning and learning_params.predictive and self.last_state is not None:
+            # print("updating the last state: ", self.last_state)
             self.last_state.update_max_q_values_of_next_states(state, self.last_action)
 
-        if learning_params.learning:
-            action = state.explore()
+        if learning:
+            action = state.explore(explain=explain)
         else:
-            action = state.exploit()
+            action = state.exploit(explain=explain)
 
         self.last_state = state
         self.last_action = action
         self.last_data = game_data
         return action
 
-    def return_result(self, final_data):
-        if learning_params.learning:
+    def return_result(self, final_data, learning):
+        if learning:
             reward = get_reward(self.last_data, final_data)
             self.last_state.update_q_value(self.last_action, reward)
 
@@ -56,19 +57,20 @@ class State:
     pure_state: PureState
 
     def __post_init__(self):
-        self.actions: dict = dict([(action, START_Q) for action in ALLOWED_ACTIONS])
-        # self.stdevs: dict = dict([(action, np.nan) for action in ALLOWED_ACTIONS])
-        self.max_q_values_of_next_states = dict([(action, np.nan) for action in ALLOWED_ACTIONS])
+        self.allowed_actions = get_allowed_actions(self.pure_state)
+        self.actions: dict = dict([(action, START_Q) for action in self.allowed_actions])
+        # self.stdevs: dict = dict([(action, np.nan) for action in self.allowed_actions])
+        self.max_q_values_of_next_states = dict([(action, np.nan) for action in self.allowed_actions])
         self.total_hits: int = 0
-        self.num_hits: dict = dict([(action, 0) for action in ALLOWED_ACTIONS])
+        self.num_hits: dict = dict([(action, 0) for action in self.allowed_actions])
         self.history = []
-        self.past_learned_values: dict = dict([(action, []) for action in ALLOWED_ACTIONS])
+        self.past_learned_values: dict = dict([(action, []) for action in self.allowed_actions])
         self.last_decision_type = ''
 
-    def explore(self):
+    def explore(self, explain=False):
         if any([hit < learning_params.min_hits_before_using_stats for hit in self.num_hits.values()]):
             action = random.choice(list(self.actions.keys()))
-            if learning_params.explain:
+            if explain:
                 print('Exploring the state:')
                 print(self.pure_state)
                 print('Not enough hits, choosing at random')
@@ -78,14 +80,14 @@ class State:
             random_choices_from_past = dict([(action, random.choice(past_values[-learning_params.max_hits_used_in_stats:])) for action, past_values in self.past_learned_values.items()])
             action = max(random_choices_from_past, key=random_choices_from_past.get)
 
-            if learning_params.explain:
+            if explain:
                 print('Exploring the state:')
                 print(self.pure_state)
                 print('Actions: {}'.format(self.actions))
                 print('Hits: {}'.format(self.num_hits))
                 print('Random samples chosen: {}'.format(random_choices_from_past))
                 print('Action to take: {}'.format(action))
-                plt.hist([self.past_learned_values[action_][-learning_params.max_hits_used_in_stats:] for action_ in ALLOWED_ACTIONS], label=ALLOWED_ACTIONS)
+                plt.hist([self.past_learned_values[action_][-learning_params.max_hits_used_in_stats:] for action_ in self.allowed_actions], label=self.allowed_actions)
                 plt.legend()
                 plt.show()
 
@@ -93,11 +95,11 @@ class State:
 
         return action
 
-    def exploit(self):
+    def exploit(self, explain=False):
         action = max(self.actions, key=self.actions.get)
         self.last_decision_type = 'exploit'
 
-        if learning_params.explain:
+        if explain:
             print('Exploiting the state:')
             print(self.pure_state)
             print('Action to take: {}'.format(action))
@@ -134,6 +136,7 @@ class State:
 
     def update_max_q_values_of_next_states(self, next_state, last_action):
         learned_value = max(next_state.actions.values())
+        # print("next state: ", next_state)
         if learning_params.next_state_is_predictable or np.isnan(self.max_q_values_of_next_states[last_action]):
             self.max_q_values_of_next_states[last_action] = learned_value
         else:
