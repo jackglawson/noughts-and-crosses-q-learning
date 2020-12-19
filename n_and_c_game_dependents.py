@@ -1,14 +1,9 @@
-from n_and_c_settings import settings
-
 from dataclasses import dataclass
 from typing import List, Tuple, Union
-import numpy as np
 from copy import deepcopy
-import random
 
 NUM_PLAYERS = 2
 PLAYER_TOKENS = ("x", "o")
-START_Q = 0
 ALLOWED_ACTIONS = [(i, j) for i in range(3) for j in range(3)]
 
 
@@ -18,7 +13,6 @@ def display_board(board):
     print(" {} | {} | {} ".format(*[" " if c == "-" else c for c in board[1]]))
     print("───────────")
     print(" {} | {} | {} ".format(*[" " if c == "-" else c for c in board[2]]))
-    print("\n")
 
 
 class GameData:
@@ -52,12 +46,16 @@ class PureState:
         return hash(str(self.board))
 
 
-def action_is_valid(pure_state: PureState, action: Tuple[int, int]) -> bool:
-    return True if pure_state.board[action[0]][action[1]] == "-" else False
+def action_is_valid(board: List[List[str]], action: Tuple[int, int]) -> bool:
+    return True if board[action[0]][action[1]] == "-" else False
 
 
 def get_allowed_actions(pure_state: PureState) -> List[Tuple[int, int]]:
-    return [action for action in ALLOWED_ACTIONS if action_is_valid(pure_state, action)]
+    return [action for action in ALLOWED_ACTIONS if action_is_valid(pure_state.board, action)]
+
+
+def player_to_play(game_data: GameData):
+    return (game_data.turn - 1) % 2
 
 
 def propagate_game(initial_game_data: GameData, action: Tuple[int, int]) -> GameData:
@@ -66,7 +64,7 @@ def propagate_game(initial_game_data: GameData, action: Tuple[int, int]) -> Game
     Action is a tuple describing the location of play.
     """
 
-    assert action_is_valid(initial_game_data, action), "Invalid move!"
+    assert action_is_valid(initial_game_data.board, action), "Invalid move!"
 
     final_game_data = deepcopy(initial_game_data)
 
@@ -104,3 +102,9 @@ def get_reward(initial_data: GameData, final_data: GameData) -> float:
         reward = -1
 
     return reward
+
+
+def request_move_from_user(game_data: GameData):
+    game_data.display()
+    user_input = input("Please input move: ")
+    return tuple(user_input)
