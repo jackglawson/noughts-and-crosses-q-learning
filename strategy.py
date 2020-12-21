@@ -81,7 +81,7 @@ class LearningStrategy(Strategy):
         if learning and self.p.predictive and self.last_state is not None:
             self.last_state.update_max_q_values_of_next_states(state, self.last_action)
 
-        if learning:
+        if learning and random.random() < self.p.random_action_rate:
             action = state.explore(explain=explain)
         else:
             action = state.exploit(explain=explain)
@@ -113,57 +113,25 @@ class State:
         self.total_hits = 0
         self.num_hits = dict([(action, 0) for action in self.allowed_actions])
         self.history = []
-        self.past_learned_values = dict([(action, []) for action in self.allowed_actions])
         self.last_decision_type = None
 
     def explore(self, explain=False):
-        """
-        Choose an action. If the number of hits on any of the possible actions is less than
-        p.min_hits_before_using_stats, a random action is chosen. Else, choose an action based on q-values
-        """
+        """Choose an action at random"""
 
-        if any([hit < self.p.min_hits_before_using_stats for hit in self.num_hits.values()]):
-            action = random.choice(list(self.actions.keys()))
-            if explain:
-                print('Exploring the state:')
-                print(self.pure_state)
-                print('Not enough hits, choosing at random')
-                print('Action to take: {}'.format(action))
-
-        elif random.random() < self.p.random_action_rate:
-            action = random.choice(list(self.actions.keys()))
-            if explain:
-                print('Exploring the state:')
-                print(self.pure_state)
-                print('Enough hits but choosing at random')
-                print('Action to take: {}'.format(action))
-
-        else:
-            # Take a random sample of the past learned q-values for each action. The action corresponding to the
-            # highest sample is chosen. This way, actions with higher q-values get chosen preferentially.
-            random_choices_from_past = dict(
-                [(action, random.choice(past_values[-self.p.max_hits_used_in_stats:])) for action, past_values in
-                 self.past_learned_values.items()])
-            action = max(random_choices_from_past, key=random_choices_from_past.get)
-
-            if explain:
-                print('Exploring the state:')
-                print(self.pure_state)
-                print('Actions: {}'.format(self.actions))
-                print('Hits: {}'.format(self.num_hits))
-                print('Random samples chosen: {}'.format(random_choices_from_past))
-                print('Action to take: {}'.format(action))
-                plt.hist([self.past_learned_values[action_][-self.p.max_hits_used_in_stats:] for action_ in
-                          self.allowed_actions], label=self.allowed_actions)
-                plt.legend()
-                plt.show()
-
+        action = random.choice(list(self.actions.keys()))
         self.last_decision_type = 'explore'
+
+        if explain:
+            print('Exploring the state:')
+            print(self.pure_state)
+            print('Choosing at random')
+            print('Action to take: {}'.format(action))
 
         return action
 
     def exploit(self, explain=False):
         """Choose the action with the highest q-value"""
+
         action = max(self.actions, key=self.actions.get)
         self.last_decision_type = 'exploit'
 
@@ -200,8 +168,6 @@ class State:
                                       }))
         if self.p.predictive:
             self.history[-1]['max_q_of_next_state'] = self.max_q_values_of_next_states
-
-        self.past_learned_values[action].append(learned_value)
 
     def update_max_q_values_of_next_states(self, next_state, last_action):
         learned_value = max(next_state.actions.values())
