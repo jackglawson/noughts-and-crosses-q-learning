@@ -39,3 +39,9 @@ class Game:
 
         p = player_to_play(self.data)
         self.strategies[p].return_result(self.data, learning=learning)
+
+        if narrate:
+            if self.data.winner == "draw":
+                print("It's a draw!")
+            else:
+                print("{}'s win!".format(self.data.winner))

@@ -1,4 +1,4 @@
-from strategy import Strategy
+from strategy import LearningStrategy, UserInput
 from n_and_c_settings import sp_learning_x, sp_learning_o, sp_random, p
 from n_and_c_game_dependents import NUM_PLAYERS
 from game import Game
@@ -16,8 +16,8 @@ def save(obj, filename: str):
 if __name__ == "__main__":
     s = time.time()
 
-    strategy_x = Strategy(sp_learning_x)
-    strategy_o = Strategy(sp_learning_o)
+    strategy_x = LearningStrategy(sp_learning_x)
+    strategy_o = LearningStrategy(sp_learning_o)
     strategies = [strategy_x, strategy_o]
 
     for epoch in range(p.num_epochs):
@@ -28,4 +28,4 @@ if __name__ == "__main__":
 
     save(strategies, "learning_strategies.pkl")
 
-    print("Time taken: {} seconds".format(round(time.time() - s, 4)))
+    print("Time taken: {} seconds".format(round(time.time() - s, 1)))

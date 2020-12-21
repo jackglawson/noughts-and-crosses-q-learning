@@ -6,14 +6,19 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
-from typing import Tuple
 
 
 class Strategy:
     def __init__(self):
         pass
 
+    def start_new_game(self):
+        raise NotImplementedError
+
     def respond(self, game_data: GameData, **kwargs):
+        raise NotImplementedError
+
+    def return_result(self, final_data: GameData, **kwargs):
         raise NotImplementedError
 
 
@@ -21,8 +26,14 @@ class UserInput(Strategy):
     def __init__(self):
         Strategy.__init__(self)
 
+    def start_new_game(self):
+        pass
+
     def respond(self, game_data: GameData, **kwargs):
         return request_move_from_user(game_data)
+
+    def return_result(self, final_data: GameData, **kwargs):
+        pass
 
 
 class LearningStrategy(Strategy):
@@ -39,7 +50,7 @@ class LearningStrategy(Strategy):
         self.last_action = None
         self.last_data = None
 
-    def respond(self, game_data: GameData, learning: bool, explain: bool = False) -> Tuple[int, int]:
+    def respond(self, game_data: GameData, **kwargs):
         """Respond to game data with an action"""
         learning = kwargs["learning"]
         explain = kwargs["explain"] if "explain" in kwargs else False
@@ -66,8 +77,9 @@ class LearningStrategy(Strategy):
 
         return action
 
-    def return_result(self, final_data, learning):
+    def return_result(self, final_data, **kwargs):
         """The game data immediately after the previous action will be returned here to allow learning"""
+        learning = kwargs["learning"]
         if learning:
             reward = get_reward(self.last_data, final_data)
             self.last_state.update_q_value(self.last_action, reward)

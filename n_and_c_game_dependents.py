@@ -13,6 +13,7 @@ def display_board(board):
     print(" {} | {} | {} ".format(*[" " if c == "-" else c for c in board[1]]))
     print("───────────")
     print(" {} | {} | {} ".format(*[" " if c == "-" else c for c in board[2]]))
+    print("\n")
 
 
 class GameData:
@@ -105,6 +106,10 @@ def get_reward(initial_data: GameData, final_data: GameData) -> float:
 
 
 def request_move_from_user(game_data: GameData):
-    game_data.display()
-    user_input = input("Please input move: ")
-    return tuple(user_input)
+    while True:
+        user_input = input("Please input move in the form {row}{column}: ")
+        action = tuple([int(i) for i in user_input])
+        if action_is_valid(game_data.board, action):
+            return action
+        else:
+            print("Invalid move. Try again!")
