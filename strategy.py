@@ -1,5 +1,5 @@
 from n_and_c_game_dependents import get_allowed_actions, get_reward, PureState, GameData, request_move_from_user
-from n_and_c_settings import StrategyParams
+from n_and_c_params import StrategyParams
 
 from dataclasses import dataclass
 import random
@@ -31,6 +31,21 @@ class UserInput(Strategy):
 
     def respond(self, game_data: GameData, **kwargs):
         return request_move_from_user(game_data)
+
+    def return_result(self, final_data: GameData, **kwargs):
+        pass
+
+
+class RandomStrategy(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+
+    def start_new_game(self):
+        pass
+
+    def respond(self, game_data: GameData, **kwargs):
+        pure_state = PureState(game_data.board)
+        return random.choice(get_allowed_actions(pure_state))
 
     def return_result(self, final_data: GameData, **kwargs):
         pass
@@ -125,8 +140,7 @@ class State:
 
         else:
             # Take a random sample of the past learned q-values for each action. The action corresponding to the
-            # highest sample is chosen. This way, actions with higher q-values get chosen preferentially,
-            # but there is still an element of randomness
+            # highest sample is chosen. This way, actions with higher q-values get chosen preferentially.
             random_choices_from_past = dict(
                 [(action, random.choice(past_values[-self.p.max_hits_used_in_stats:])) for action, past_values in
                  self.past_learned_values.items()])

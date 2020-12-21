@@ -1,5 +1,5 @@
 from strategy import LearningStrategy, UserInput
-from n_and_c_settings import sp_learning_x, sp_learning_o, sp_random, p
+from n_and_c_params import sp_learning_x, sp_learning_o, sp_random, p
 from n_and_c_game_dependents import NUM_PLAYERS
 from game import Game
 
