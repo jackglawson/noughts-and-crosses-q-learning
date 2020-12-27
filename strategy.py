@@ -67,7 +67,6 @@ class LearningStrategy(Strategy):
 
     def respond(self, game_data: GameData, **kwargs):
         """Respond to game data with an action"""
-        learning = kwargs["learning"]
         explain = kwargs["explain"] if "explain" in kwargs else False
 
         pure_state = PureState.build_from_data(game_data)
@@ -78,13 +77,16 @@ class LearningStrategy(Strategy):
             state = State(pure_state, self.p)
             self.states[pure_state] = state
 
-        if learning and self.p.predictive and self.last_state is not None:
+        if self.p.learning and self.p.predictive and self.last_state is not None:
             self.last_state.update_max_q_values_of_next_states(state, self.last_action)
 
-        if learning and random.random() < self.p.random_action_rate:
-            action = state.explore(explain=explain)
-        else:
+        if not self.p.learning:
             action = state.exploit(explain=explain)
+        else:
+            if min(state.num_hits.values()) < self.p.min_hits_before_exploit or random.random() < self.p.random_action_rate:
+                action = state.explore(explain=explain)
+            else:
+                action = state.exploit(explain=explain)
 
         self.last_state = state
         self.last_action = action
@@ -94,8 +96,7 @@ class LearningStrategy(Strategy):
 
     def return_result(self, final_data, **kwargs):
         """The game data immediately after the previous action will be returned here to allow learning"""
-        learning = kwargs["learning"]
-        if learning:
+        if self.p.learning:
             reward = get_reward(self.last_data, final_data)
             self.last_state.update_q_value(self.last_action, reward)
 
@@ -112,8 +113,9 @@ class State:
         self.max_q_values_of_next_states = dict([(action, np.nan) for action in self.allowed_actions])
         self.total_hits = 0
         self.num_hits = dict([(action, 0) for action in self.allowed_actions])
-        self.history = []
         self.last_decision_type = None
+        if self.p.keep_log:
+            self.history = []
 
     def explore(self, explain=False):
         """Choose an action at random"""
@@ -131,20 +133,16 @@ class State:
 
     def exploit(self, explain=False):
         """Choose the action with the highest q-value"""
-
-        action = max(self.actions, key=self.actions.get)
+        max_q = max(self.actions.values())
+        best_actions = filter(lambda a: self.actions[a] == max_q, self.actions.keys())
+        action = random.choice(list(best_actions))
         self.last_decision_type = 'exploit'
 
         if explain:
             print('Exploiting the state:')
             print(self.pure_state)
             print('Action to take: {}'.format(action))
-            for action_ in self.actions.keys():
-                selected_history = [hist for hist in self.history if hist['action'] == action_]
-                plt.plot([hist['hit'] for hist in selected_history], [hist['q_value'] for hist in selected_history],
-                         label=action_)
-            plt.legend()
-            plt.show()
+            self.plot()
 
         return action
 
@@ -159,15 +157,17 @@ class State:
 
         self.actions[action] = (((self.num_hits[action] - 1) * self.actions[action]) + learned_value) / (self.num_hits[action])
 
-        self.history.append(deepcopy({'hit': self.num_hits[action],
-                                      'action': action,
-                                      'reward': reward,
-                                      'learned_value': learned_value,
-                                      'q_value': self.actions[action],
-                                      'decision_type': self.last_decision_type,
-                                      }))
-        if self.p.predictive:
-            self.history[-1]['max_q_of_next_state'] = self.max_q_values_of_next_states
+        if self.p.keep_log:
+            self.history.append(deepcopy({'hit': self.num_hits[action],
+                                          'action': action,
+                                          'reward': reward,
+                                          'learned_value': learned_value,
+                                          'q_value': self.actions[action],
+                                          'q_values': self.actions,
+                                          'decision_type': self.last_decision_type,
+                                          }))
+            if self.p.predictive:
+                self.history[-1]['max_q_of_next_state'] = self.max_q_values_of_next_states
 
     def update_max_q_values_of_next_states(self, next_state, last_action):
         learned_value = max(next_state.actions.values())
@@ -176,3 +176,12 @@ class State:
         else:
             self.max_q_values_of_next_states[last_action] = (((self.total_hits - 1) * self.max_q_values_of_next_states[
                 last_action]) + learned_value) / self.total_hits
+
+    def plot(self):
+        assert self.p.keep_log, "Can't plot without history"
+        for action_ in self.actions.keys():
+            selected_history = [hist for hist in self.history if hist['action'] == action_]
+            plt.plot([hist['hit'] for hist in selected_history], [hist['q_value'] for hist in selected_history],
+                     label=action_)
+        plt.legend()
+        plt.show()

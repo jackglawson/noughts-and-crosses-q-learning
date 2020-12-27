@@ -1,5 +1,5 @@
 from strategy import LearningStrategy, UserInput
-from n_and_c_params import sp_learning_x, sp_learning_o, sp_random, p
+from n_and_c_params import sp_learning_x, sp_learning_o, p
 from n_and_c_game_dependents import NUM_PLAYERS
 from game import Game
 
@@ -22,10 +22,10 @@ if __name__ == "__main__":
 
     for epoch in range(p.num_epochs):
         game = Game(NUM_PLAYERS, strategies)
-        game.play(learning=p.learning, explain=p.explain)
+        game.play(explain=p.explain)
         if epoch % 1000 == 0:
             print('Progress: {}%'.format(round(epoch/p.num_epochs*100), 3))
 
     save(strategies, "learning_strategies.pkl")
 
-    print("Time taken: {} seconds".format(round(time.time() - s, 1)))
+    print("Time taken: {} seconds".format(round(time.time() - s, 2)))

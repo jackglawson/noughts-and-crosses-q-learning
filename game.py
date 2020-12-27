@@ -17,7 +17,7 @@ class Game:
         self.data: GameData = GameData()
         self.log: List[GameData] = []
 
-    def play(self, learning, explain=False, narrate=False):
+    def play(self, explain=False, narrate=False):
         assert self.data.winner is None, 'Game is already over!'
 
         for i in range(len(self.strategies)):
@@ -29,16 +29,16 @@ class Game:
 
         while self.data.winner is None:
             p = player_to_play(self.data)
-            action = self.strategies[p].respond(self.data, learning=learning, explain=explain)
+            action = self.strategies[p].respond(self.data, explain=explain)
             self.data = propagate_game(self.data, action)
-            self.strategies[p].return_result(self.data, learning=learning)
+            self.strategies[p].return_result(self.data)
             self.log.append(deepcopy(self.data))
 
             if narrate:
                 self.data.display()
 
         p = player_to_play(self.data)
-        self.strategies[p].return_result(self.data, learning=learning)
+        self.strategies[p].return_result(self.data)
 
         if narrate:
             if self.data.winner == "draw":

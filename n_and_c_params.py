@@ -1,27 +1,25 @@
 from params import Params, StrategyParams
 
-
 p = Params(num_epochs=10000,
-           explain=False,
-           learning=True)
+           explain=False)
 
 # Strategy for x
-sp_learning_x = StrategyParams(start_q=0,
+sp_learning_x = StrategyParams(start_q=0.3,
                                random_action_rate=0.4,
                                discount_rate=0.7,
+                               min_hits_before_exploit=10,
                                next_state_is_predictable=False,
-                               predictive=True)
+                               predictive=True,
+                               learning=True,
+                               keep_log=True)
 
 # Strategy for o
-sp_learning_o = StrategyParams(start_q=0,
+sp_learning_o = StrategyParams(start_q=-0.3,
                                random_action_rate=0.4,
                                discount_rate=0.7,
+                               min_hits_before_exploit=10,
                                next_state_is_predictable=False,
-                               predictive=True)
+                               predictive=True,
+                               learning=True,
+                               keep_log=True)
 
-# A strategy that only chooses random actions.
-sp_random = StrategyParams(start_q=0,
-                           random_action_rate=1,
-                           discount_rate=0.7,
-                           next_state_is_predictable=False,
-                           predictive=True)
