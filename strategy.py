@@ -83,7 +83,7 @@ class LearningStrategy(Strategy):
         if not self.p.learning:
             action = state.exploit(explain=explain)
         else:
-            if min(state.num_hits.values()) < self.p.min_hits_before_exploit or random.random() < self.p.random_action_rate:
+            if random.random() < state.epsilon:
                 action = state.explore(explain=explain)
             else:
                 action = state.exploit(explain=explain)
@@ -101,6 +101,20 @@ class LearningStrategy(Strategy):
             self.last_state.update_q_value(self.last_action, reward)
 
 
+class OptimalStrategy(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+
+    def start_new_game(self):
+        pass
+
+    def respond(self, game_data: GameData, **kwargs):
+        raise NotImplementedError
+
+    def return_result(self, final_data: GameData, **kwargs):
+        pass
+
+
 @dataclass(frozen=False)
 class State:
     """Q-values are stored here. Each PureState has its own State."""
@@ -109,10 +123,11 @@ class State:
 
     def __post_init__(self):
         self.allowed_actions = get_allowed_actions(self.pure_state)
-        self.actions = dict([(action, self.p.start_q) for action in self.allowed_actions])
+        self.q_values = dict([(action, self.p.start_q) for action in self.allowed_actions])
         self.max_q_values_of_next_states = dict([(action, np.nan) for action in self.allowed_actions])
         self.total_hits = 0
         self.num_hits = dict([(action, 0) for action in self.allowed_actions])
+        self.epsilon = 1
         self.last_decision_type = None
         if self.p.keep_log:
             self.history = []
@@ -120,7 +135,7 @@ class State:
     def explore(self, explain=False):
         """Choose an action at random"""
 
-        action = random.choice(list(self.actions.keys()))
+        action = random.choice(self.allowed_actions)
         self.last_decision_type = 'explore'
 
         if explain:
@@ -133,8 +148,8 @@ class State:
 
     def exploit(self, explain=False):
         """Choose the action with the highest q-value"""
-        max_q = max(self.actions.values())
-        best_actions = filter(lambda a: self.actions[a] == max_q, self.actions.keys())
+        max_q = max(self.q_values.values())
+        best_actions = filter(lambda a: self.q_values[a] == max_q, self.q_values.keys())
         action = random.choice(list(best_actions))
         self.last_decision_type = 'exploit'
 
@@ -148,6 +163,7 @@ class State:
 
     def update_q_value(self, action, reward):
         self.total_hits += 1
+        self.epsilon = max(self.epsilon * self.p.epsilon_decay_rate, self.p.minimum_epsilon)
         self.num_hits[action] += 1
 
         if not self.p.predictive or np.isnan(self.max_q_values_of_next_states[action]):
@@ -155,22 +171,22 @@ class State:
         else:
             learned_value = reward + self.p.discount_rate * self.max_q_values_of_next_states[action]
 
-        self.actions[action] = (((self.num_hits[action] - 1) * self.actions[action]) + learned_value) / (self.num_hits[action])
+        self.q_values[action] = self.q_values[action] + self.p.learning_rate * (learned_value - self.q_values[action])
 
         if self.p.keep_log:
             self.history.append(deepcopy({'hit': self.num_hits[action],
                                           'action': action,
                                           'reward': reward,
                                           'learned_value': learned_value,
-                                          'q_value': self.actions[action],
-                                          'q_values': self.actions,
+                                          'q_value': self.q_values[action],
+                                          'q_values': self.q_values,
                                           'decision_type': self.last_decision_type,
                                           }))
             if self.p.predictive:
                 self.history[-1]['max_q_of_next_state'] = self.max_q_values_of_next_states
 
     def update_max_q_values_of_next_states(self, next_state, last_action):
-        learned_value = max(next_state.actions.values())
+        learned_value = max(next_state.q_values.values())
         if self.p.next_state_is_predictable or np.isnan(self.max_q_values_of_next_states[last_action]):
             self.max_q_values_of_next_states[last_action] = learned_value
         else:
@@ -179,7 +195,7 @@ class State:
 
     def plot(self):
         assert self.p.keep_log, "Can't plot without history"
-        for action_ in self.actions.keys():
+        for action_ in self.q_values.keys():
             selected_history = [hist for hist in self.history if hist['action'] == action_]
             plt.plot([hist['hit'] for hist in selected_history], [hist['q_value'] for hist in selected_history],
                      label=action_)

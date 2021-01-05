@@ -43,9 +43,10 @@ class StrategyParams:
     """
 
     start_q: float
-    random_action_rate: float
+    learning_rate: float
     discount_rate: float
-    min_hits_before_exploit: int
+    epsilon_decay_rate: float
+    minimum_epsilon: float
     next_state_is_predictable: bool
     predictive: bool
     learning: bool
