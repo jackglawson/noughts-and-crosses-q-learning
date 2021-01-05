@@ -108,6 +108,9 @@ def get_reward(initial_data: GameData, final_data: GameData) -> float:
 def request_move_from_user(game_data: GameData):
     while True:
         user_input = input("Please input move in the form {row}{column}: ")
+        if len(user_input) != 2 or not user_input.isnumeric():
+            print("Invalid move. Try again!")
+            continue
         action = tuple([int(i) for i in user_input])
         if action_is_valid(game_data.board, action):
             return action

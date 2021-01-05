@@ -23,6 +23,7 @@ class Strategy:
 
 
 class UserInput(Strategy):
+    """Allows the user to input moves"""
     def __init__(self):
         Strategy.__init__(self)
 
@@ -37,6 +38,7 @@ class UserInput(Strategy):
 
 
 class RandomStrategy(Strategy):
+    """Chooses actions randomly"""
     def __init__(self):
         Strategy.__init__(self)
 
@@ -52,6 +54,7 @@ class RandomStrategy(Strategy):
 
 
 class LearningStrategy(Strategy):
+    """Q-learning strategy"""
     def __init__(self, p: StrategyParams):
         Strategy.__init__(self)
         self.p = p
@@ -99,20 +102,6 @@ class LearningStrategy(Strategy):
         if self.p.learning:
             reward = get_reward(self.last_data, final_data)
             self.last_state.update_q_value(self.last_action, reward)
-
-
-class OptimalStrategy(Strategy):
-    def __init__(self):
-        Strategy.__init__(self)
-
-    def start_new_game(self):
-        pass
-
-    def respond(self, game_data: GameData, **kwargs):
-        raise NotImplementedError
-
-    def return_result(self, final_data: GameData, **kwargs):
-        pass
 
 
 @dataclass(frozen=False)

@@ -25,8 +25,13 @@ class StrategyParams:
       The larger the factor, more weight will be given to future rewards.
       Set discount_rate = 1 to give equal weight to immediate and future rewards.
 
-    min_hits_before_exploit: int
-      To ensure good exploration, each action should be explored this many times before exploiting
+    epsilon_decay_rate: float
+      The probability that exploration is chosen over exploitation is given by epsilon.
+      Exploration should be favoured while the state has fewer hits.
+      As the state accumulates hits, epsilon decreases according to epsilon_decay_rate ^(num_hits).
+
+    minimum_epsilon: float
+      Epsilon is not allowed to decrease below this value.
 
     next_state_is_predictable: bool
       Is the next state purely dependent on the action now?
