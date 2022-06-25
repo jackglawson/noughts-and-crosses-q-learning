@@ -19,7 +19,7 @@ All other files are not specific to Noughts and Crosses.
 
 For Noughts and Crosses, effective parameters are given in n_and_c_params.py. 
 A strategy can be tested by putting it against a strategy that chooses actions at random. 
-Over 10,000 such games, the q-learning strategy is shown to be very effective: it loses 96 times when playing as noughts 
+Over 10,000 such games, the q-learning strategy is shown to be effective: it loses 96 times when playing as noughts 
 and 0 times when playing as crosses. Crosses always start.
 
 ## Future improvements:
